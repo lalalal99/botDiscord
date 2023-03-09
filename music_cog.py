@@ -6,7 +6,7 @@ from discord.ext import commands, tasks
 import time
 from datetime import datetime
 import pytz
-from spotify_top_songs import get_chart
+from spotify_top_songs import get_chart, pl_id
 from yt_dlp import YoutubeDL
 
 
@@ -213,7 +213,7 @@ class music_cog(commands.Cog):
     @commands.command(name="top", help="Plays top songs from spotify")
     async def top(self, ctx, *args):
         noshuffle = False
-        cmds = {"-edm","-rock"}
+        cmds = {"-"+genre for genre in pl_id.keys()}#{"-edm","-metal", "-rock"}
         args = set(args)
 
         if "-ns" in args:

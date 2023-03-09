@@ -7,6 +7,7 @@ sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
 pl_id = {"default": 'https://open.spotify.com/playlist/37i9dQZEVXbNG2KDcFcKOF',
          "edm": 'https://open.spotify.com/playlist/37i9dQZF1DX3Kdv0IChEm9',
+         "metal": 'https://open.spotify.com/playlist/37i9dQZF1EQpgT26jgbgRI',
          "rock": 'https://open.spotify.com/playlist/37i9dQZF1DWSAm0NxvFu7q'}
 offset = 0
 
