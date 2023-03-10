@@ -213,7 +213,7 @@ class music_cog(commands.Cog):
     @commands.command(name="top", help="Plays top songs from spotify")
     async def top(self, ctx, *args):
         noshuffle = False
-        cmds = {"-"+genre for genre in pl_id.keys()}#{"-edm","-metal", "-rock"}
+        cmds = {"-"+genre for genre in pl_id.keys()}
         args = set(args)
 
         if "-ns" in args:
@@ -234,10 +234,8 @@ class music_cog(commands.Cog):
 
         if maxsongs:
             if not maxsongs.isnumeric():
-                print(
-                    f"[{getHoursMinutes()}][service:error] Argument is not a number")
-                await ctx.send(
-                    f"[{getHoursMinutes()}][service:error] Argument is not a number")
+                print(f"[{getHoursMinutes()}][service:error] Argument is not a number")
+                await ctx.send(f"[{getHoursMinutes()}][service:error] Argument is not a number")
                 return
             maxsongs = int(maxsongs)
         else:
@@ -252,10 +250,10 @@ class music_cog(commands.Cog):
         await ctx.send(str(maxsongs) + (" songs " if maxsongs > 1 else " song ") + "added to the queue!")
 
         for i in range(0, maxsongs):
-            query = chart[i]["Artist"] + " " + \
-                chart[i]["TrackName"] + " lyrics"
+            query = chart[i]["Artist"] + " " + chart[i]["TrackName"] + " lyrics"
             print(i+1, "-", query)
             await self.play(ctx, query + " -nv")
+            
         self.top_playing = True
         self.music_queue.pop(0)
 
