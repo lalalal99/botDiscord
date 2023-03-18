@@ -62,7 +62,6 @@ class music_cog(commands.Cog):
             except Exception:
                 return False
         return {'source': info['url'], 'title': info['title']}
-        # return {'source': info['formats'][0]['url'], 'title': info['title']}
 
     def play_next(self):
         if self.vc == None or not self.vc.is_connected():
@@ -70,18 +69,16 @@ class music_cog(commands.Cog):
 
         if len(self.music_queue) > 0:
             self.is_playing = True
-
             if not self.looping:
                 # remove the first element as you are currently playing it
                 self.music_queue.pop(0)
                 if len(self.music_queue) == 0:
                     self.is_playing = False
+                    self.top_playing = False
                     return
-
             # get the first url
             m_url = self.music_queue[0][0]['source']
             self.now_playing = self.music_queue[0][0]['title']
-
             self.vc.play(discord.FFmpegPCMAudio(
                 m_url, **self.FFMPEG_OPTIONS), after=lambda e: self.play_next())
         else:
@@ -92,9 +89,7 @@ class music_cog(commands.Cog):
     async def play_music(self, ctx):
         if len(self.music_queue) > 0:
             self.is_playing = True
-
             m_url = self.music_queue[0][0]['source']
-
             # try to connect to voice channel if you are not already connected
             if self.vc == None or not self.vc.is_connected():
                 self.vc = await self.music_queue[0][1].connect()
@@ -116,7 +111,6 @@ class music_cog(commands.Cog):
     @commands.command(name="play", aliases=["p", "playing"], help="Plays a selected song from youtube")
     async def play(self, ctx, *args):
         query = " ".join(args)
-
         voice_channel = ctx.author.voice.channel
         if voice_channel is None:
             # you need to be connected so that the bot knows where to go
@@ -129,7 +123,6 @@ class music_cog(commands.Cog):
             if type(song) == type(True):
                 await ctx.send("Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.")
             else:
-                # await ctx.send("Song added to the queue")
                 if not query.endswith("-nv"):
                     await ctx.send(song["title"] + " added to the queue")
 
@@ -162,7 +155,7 @@ class music_cog(commands.Cog):
             # try to play next in the queue if it exists
             # self.play_next()
             # self.music_queue.pop(0)
-            await self.play_music(ctx)
+            # await self.play_music(ctx)
 
     @commands.command(name="loop", help="Toggles loop mode")
     async def loop(self, ctx):
@@ -234,7 +227,8 @@ class music_cog(commands.Cog):
 
         if maxsongs:
             if not maxsongs.isnumeric():
-                print(f"[{getHoursMinutes()}][service:error] Argument is not a number")
+                print(
+                    f"[{getHoursMinutes()}][service:error] Argument is not a number")
                 await ctx.send(f"[{getHoursMinutes()}][service:error] Argument is not a number")
                 return
             maxsongs = int(maxsongs)
@@ -250,10 +244,11 @@ class music_cog(commands.Cog):
         await ctx.send(str(maxsongs) + (" songs " if maxsongs > 1 else " song ") + "added to the queue!")
 
         for i in range(0, maxsongs):
-            query = chart[i]["Artist"] + " " + chart[i]["TrackName"] + " lyrics"
+            query = chart[i]["Artist"] + " " + \
+                chart[i]["TrackName"] + " lyrics"
             print(i+1, "-", query)
             await self.play(ctx, query + " -nv")
-            
+
         self.top_playing = True
         self.music_queue.pop(0)
 
