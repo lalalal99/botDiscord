@@ -1,4 +1,3 @@
-from ast import alias
 import asyncio
 import random
 import discord
@@ -8,6 +7,8 @@ from datetime import datetime
 import pytz
 from spotify_top_songs import get_chart, pl_id
 from yt_dlp import YoutubeDL
+from pprint import pprint
+import threading
 
 
 def getHoursMinutes():
@@ -53,8 +54,8 @@ class music_cog(commands.Cog):
         self.timer = time.time()
         self.status_task.start()
 
-     # searching the item on youtube
-    def search_yt(self, item):
+    # searching the item on youtube
+    async def search_yt(self, item):
         with YoutubeDL(self.YDL_OPTIONS) as ydl:
             try:
                 info = ydl.extract_info("ytsearch:%s" %
@@ -85,7 +86,6 @@ class music_cog(commands.Cog):
             self.is_playing = False
             self.top_playing = False
 
-    # infinite loop checking
     async def play_music(self, ctx):
         if len(self.music_queue) > 0:
             self.is_playing = True
@@ -113,13 +113,12 @@ class music_cog(commands.Cog):
         query = " ".join(args)
         voice_channel = ctx.author.voice.channel
         if voice_channel is None:
-            # you need to be connected so that the bot knows where to go
             await ctx.send("Connect to a voice channel!")
         elif self.is_paused:
             self.vc.resume()
         else:
             self.timer = time.time()
-            song = self.search_yt(query)
+            song = await self.search_yt(query)
             if type(song) == type(True):
                 await ctx.send("Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.")
             else:
@@ -152,10 +151,6 @@ class music_cog(commands.Cog):
     async def skip(self, ctx):
         if self.vc != None and self.vc:
             self.vc.stop()
-            # try to play next in the queue if it exists
-            # self.play_next()
-            # self.music_queue.pop(0)
-            # await self.play_music(ctx)
 
     @commands.command(name="loop", help="Toggles loop mode")
     async def loop(self, ctx):
@@ -171,9 +166,14 @@ class music_cog(commands.Cog):
     async def queue(self, ctx):
         retval = ""
         max = 10
-        # retval += self.now_playing + "\n"
+        print(1, self.music_queue)
         for i in range(0, len(self.music_queue)):
             # display a max of 5 songs in the current queue
+            print("-----------------")
+            print(i, 2, self.music_queue[i])
+            print(i, 3, self.music_queue[i][0])
+            print(i, 4, self.music_queue[i][0]["title"])
+            print("-----------------")
             if (i > max):
                 break
             retval += self.music_queue[i][0]['title'] + "\n"
@@ -205,6 +205,7 @@ class music_cog(commands.Cog):
 
     @commands.command(name="top", help="Plays top songs from spotify")
     async def top(self, ctx, *args):
+        voice_channel = ctx.author.voice.channel
         noshuffle = False
         cmds = {"-"+genre for genre in pl_id.keys()}
         args = set(args)
@@ -243,14 +244,38 @@ class music_cog(commands.Cog):
 
         await ctx.send(str(maxsongs) + (" songs " if maxsongs > 1 else " song ") + "added to the queue!")
 
-        for i in range(0, maxsongs):
+        songs = [None] * maxsongs
+
+        async def async_yt_search(query, i):
+            song = await self.search_yt(query)
+            songs[i] = [song, voice_channel]
+
+        def wrap_async_func(query, i):
+            asyncio.run(async_yt_search(query, i))
+
+        query = chart[0]["Artist"] + " " + chart[0]["TrackName"] + " lyrics"
+        await self.play(ctx, query + " -nv")
+
+        threads = []
+        for i in range(1,  maxsongs):
             query = chart[i]["Artist"] + " " + \
                 chart[i]["TrackName"] + " lyrics"
             print(i+1, "-", query)
-            await self.play(ctx, query + " -nv")
+
+            _t = threading.Thread(target=wrap_async_func, args=(query, i))
+            threads.append(_t)
+
+        for t in threads:
+            await asyncio.sleep(0.1)
+            t.start()
+
+        for t_ in threads:
+            t_.join()
+
+        for song in songs[1:]:
+            self.music_queue.append(song)
 
         self.top_playing = True
-        self.music_queue.pop(0)
 
     @commands.command(name="nowplaying", aliases=["np"], help="Returns the title of the song currently playing")
     async def nowplaying(self, ctx, *args):

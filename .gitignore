@@ -1,2 +1,6 @@
 token.txt
 __pycache__
+.metals
+.vscode
+.cache
+botDiscord.lnk

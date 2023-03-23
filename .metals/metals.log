@@ -10,3 +10,6 @@ SLF4J: See https://www.slf4j.org/codes.html#ignoredBindings for an explanation.
 2023.03.20 19:36:14 WARN  no build tool detected in workspace 'D:\FRANCESCO\DicordBot\music_bot-main'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. 
 mar 20, 2023 7:36:18 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
 INFO: Unsupported notification method: $/setTrace
+2023.03.20 23:39:11 INFO  Shutting down server
+2023.03.20 23:39:11 INFO  shutting down Metals
+2023.03.20 23:39:11 INFO  Exiting server
