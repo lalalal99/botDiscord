@@ -1,14 +1,16 @@
 import asyncio
 import random
-import discord
-from discord.ext import commands, tasks
+import threading
 import time
 from datetime import datetime
-import pytz
-from spotify_top_songs import get_chart, pl_id
-from yt_dlp import YoutubeDL
 from pprint import pprint
-import threading
+
+import discord
+import pytz
+from discord.ext import commands, tasks
+from yt_dlp import YoutubeDL
+
+from spotify_top_songs import get_chart, pl_id
 
 
 def getHoursMinutes():
@@ -29,7 +31,8 @@ class music_cog(commands.Cog):
 
         # 2d array containing [song, channel]
         self.music_queue = []
-        self.YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist': 'True'}
+        self.YDL_OPTIONS = {"quiet": True,
+                            'format': 'bestaudio', 'noplaylist': 'True'}
         self.FFMPEG_OPTIONS = {
             'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
@@ -64,6 +67,47 @@ class music_cog(commands.Cog):
                 return False
         return {'source': info['url'], 'title': info['title']}
 
+    @commands.command(name="play", aliases=["p", "playing"], help="Plays a selected song from youtube")
+    async def play(self, ctx, *args):
+        query = " ".join(args)
+        if not ctx.author.voice:
+            await ctx.send("Connect to a voice channel!")
+            return
+
+        voice_channel = ctx.author.voice.channel
+
+        self.timer = time.time()
+        song = await self.search_yt(query)
+        if type(song) == type(True):
+            await ctx.send("Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.")
+            return
+
+        if not query.endswith("-nv"):
+            await ctx.send(song["title"] + " added to the queue")
+
+        item = [song, voice_channel]
+        if self.top_playing:
+            self.music_queue.insert(0, item)
+        else:
+            self.music_queue.append(item)
+
+        if self.is_playing:
+            return
+            # await self.play_music(ctx)
+
+        self.is_playing = True
+        m_url = self.music_queue[0][0]['source']
+
+        if not self.vc or not self.vc.is_connected():
+            self.vc = await self.music_queue[0][1].connect()
+            if not self.vc:
+                await ctx.send("Could not connect to the voice channel")
+                return
+
+        self.now_playing = self.music_queue[0][0]['title']
+        self.vc.play(discord.FFmpegPCMAudio(
+            m_url, **self.FFMPEG_OPTIONS), after=lambda e: self.play_next())
+
     def play_next(self):
         if self.vc == None or not self.vc.is_connected():
             return
@@ -85,53 +129,6 @@ class music_cog(commands.Cog):
         else:
             self.is_playing = False
             self.top_playing = False
-
-    async def play_music(self, ctx):
-        if len(self.music_queue) > 0:
-            self.is_playing = True
-            m_url = self.music_queue[0][0]['source']
-            # try to connect to voice channel if you are not already connected
-            if self.vc == None or not self.vc.is_connected():
-                self.vc = await self.music_queue[0][1].connect()
-
-                # in case we fail to connect
-                if self.vc == None:
-                    await ctx.send("Could not connect to the voice channel")
-                    return
-            else:
-                await self.vc.move_to(self.music_queue[0][1])
-
-            self.now_playing = self.music_queue[0][0]['title']
-            self.vc.play(discord.FFmpegPCMAudio(
-                m_url, **self.FFMPEG_OPTIONS), after=lambda e: self.play_next())
-        else:
-            self.is_playing = False
-            self.top_playing = False
-
-    @commands.command(name="play", aliases=["p", "playing"], help="Plays a selected song from youtube")
-    async def play(self, ctx, *args):
-        query = " ".join(args)
-        voice_channel = ctx.author.voice.channel
-        if voice_channel is None:
-            await ctx.send("Connect to a voice channel!")
-        elif self.is_paused:
-            self.vc.resume()
-        else:
-            self.timer = time.time()
-            song = await self.search_yt(query)
-            if type(song) == type(True):
-                await ctx.send("Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.")
-            else:
-                if not query.endswith("-nv"):
-                    await ctx.send(song["title"] + " added to the queue")
-
-                if self.top_playing:
-                    self.music_queue.insert(0, [song, voice_channel])
-                else:
-                    self.music_queue.append([song, voice_channel])
-
-                if self.is_playing == False:
-                    await self.play_music(ctx)
 
     @commands.command(name="pause", help="Pauses the current song being played")
     async def pause(self, ctx, *args):
@@ -166,14 +163,8 @@ class music_cog(commands.Cog):
     async def queue(self, ctx):
         retval = ""
         max = 10
-        print(1, self.music_queue)
         for i in range(0, len(self.music_queue)):
             # display a max of 5 songs in the current queue
-            print("-----------------")
-            print(i, 2, self.music_queue[i])
-            print(i, 3, self.music_queue[i][0])
-            print(i, 4, self.music_queue[i][0]["title"])
-            print("-----------------")
             if (i > max):
                 break
             retval += self.music_queue[i][0]['title'] + "\n"
@@ -205,6 +196,10 @@ class music_cog(commands.Cog):
 
     @commands.command(name="top", help="Plays top songs from spotify")
     async def top(self, ctx, *args):
+        if not ctx.author.voice:
+            await ctx.send("Connect to a voice channel!")
+            return
+
         voice_channel = ctx.author.voice.channel
         noshuffle = False
         cmds = {"-"+genre for genre in pl_id.keys()}
@@ -255,6 +250,7 @@ class music_cog(commands.Cog):
 
         query = chart[0]["Artist"] + " " + chart[0]["TrackName"] + " lyrics"
         await self.play(ctx, query + " -nv")
+        print(1, "-", query)
 
         threads = []
         for i in range(1,  maxsongs):
@@ -272,6 +268,8 @@ class music_cog(commands.Cog):
         for t_ in threads:
             t_.join()
 
+        print("All songs downloaded.")
+
         for song in songs[1:]:
             self.music_queue.append(song)
 
@@ -286,3 +284,7 @@ class music_cog(commands.Cog):
                 await ctx.send("No song playing")
         else:
             await ctx.send("Not connected to a voice channel")
+
+    # @commands.command(name="chatgpt")
+    # async def chatgtp(self, ctx, *args):
+    #     pass
