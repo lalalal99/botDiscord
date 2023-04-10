@@ -1,13 +1,16 @@
 import asyncio
+import datetime
 import os
 
 import discord
+import pytz
 from discord.ext import commands
 
 # import all of the cogs
 from help_cog import help_cog
 from music_cog import music_cog
 from servers_cog import servers_cog
+
 # from test_cog import test_cog
 
 GUILD = discord.Object(id=558367979931172870)
@@ -19,6 +22,9 @@ bot = commands.Bot(command_prefix='m', intents=discord.Intents.all())
 
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+
+def getHoursMinutes():
+    return datetime.now(pytz.timezone("Europe/Rome")).strftime("%H:%M")
 
 async def setup():
     # await bot.add_cog(help_cog(bot))

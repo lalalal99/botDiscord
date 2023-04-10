@@ -1,11 +1,8 @@
-import discord
-from discord.ext import commands
 from datetime import datetime
+
+import discord
 import pytz
-
-
-def getHoursMinutes():
-    return datetime.now(pytz.timezone("Europe/Rome")).strftime("%H:%M")
+from discord.ext import commands
 
 
 class help_cog(commands.Cog):
