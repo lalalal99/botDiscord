@@ -5,10 +5,11 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 
-pl_id = {"default": 'https://open.spotify.com/playlist/37i9dQZEVXbNG2KDcFcKOF',
-         "edm": 'https://open.spotify.com/playlist/37i9dQZF1DX3Kdv0IChEm9',
-         "metal": 'https://open.spotify.com/playlist/37i9dQZF1EQpgT26jgbgRI',
-         }
+pl_id = {
+    "default": 'https://open.spotify.com/playlist/37i9dQZF1DX3Kdv0IChEm9',
+    "top": 'https://open.spotify.com/playlist/37i9dQZEVXbNG2KDcFcKOF',
+    "metal": 'https://open.spotify.com/playlist/37i9dQZF1EQpgT26jgbgRI',
+}
 pl_id["mix"] = list(pl_id.values())
 
 
@@ -30,6 +31,6 @@ def get_chart(genre):
     chart = []
     for item in response["items"]:
         track = item["track"]
-        chart.append({"Artist": track["name"],
-                      "TrackName": track["artists"][0]["name"]})
+        chart.append({"Artist": track["artists"][0]["name"],
+                      "TrackName": track["name"]})
     return chart

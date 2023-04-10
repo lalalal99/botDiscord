@@ -172,29 +172,3 @@ class servers_cog(commands.Cog):
         while(process_exists(query)):
             time.sleep(1)
         await self.runServer(query, ctx)
-
-    # @commands.Cog.listener()
-    # async def on_ready(self):
-    #     print("Bot ready!")
-
-    # @commands.command(name="play", aliases=["p", "playing"], help="Plays a selected song from youtube")
-    # async def play(self, ctx, *args):
-    #     query = " ".join(args)
-
-    #     voice_channel = ctx.author.voice.channel
-    #     if voice_channel is None:
-    #         # you need to be connected so that the bot knows where to go
-    #         await ctx.send("Connect to a voice channel!")
-    #     elif self.is_paused:
-    #         self.vc.resume()
-    #     else:
-    #         song = self.search_yt(query)
-    #         if type(song) == type(True):
-    #             await ctx.send("Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.")
-    #         else:
-    #             # await ctx.send("Song added to the queue")
-    #             await ctx.send(song["title"] + " added to the queue")
-    #             self.music_queue.append([song, voice_channel])
-
-    #             if self.is_playing == False:
-    #                 await self.play_music(ctx)
