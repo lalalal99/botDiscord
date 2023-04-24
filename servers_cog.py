@@ -11,13 +11,8 @@ import discord
 import pytz
 from discord.ext import commands, tasks
 
+from globals import getHoursMinutes, capitalize
 
-def capitalize(word):
-    return word[0].upper() + word[1:]
-
-
-def getHoursMinutes():
-    return datetime.now(pytz.timezone("Europe/Rome")).strftime("%H:%M")
 
 
 async def error_title_not_in_list(ctx, query, titles):

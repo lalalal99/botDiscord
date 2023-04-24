@@ -4,6 +4,8 @@ import discord
 import pytz
 from discord.ext import commands
 
+from globals import getHoursMinutes
+
 
 class help_cog(commands.Cog):
     def __init__(self, bot):
@@ -40,8 +42,3 @@ mresume - resumes playing the current song
     async def send_to_all(self, msg):
         for text_channel in self.text_channel_list:
             await text_channel.send(msg)
-
-
-
-
-

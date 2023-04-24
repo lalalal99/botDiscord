@@ -2,22 +2,19 @@ import asyncio
 import random
 import threading
 import time
+import typing
 from datetime import datetime
 from pprint import pprint
-import typing
-from tabulate import tabulate
 
 import discord
 import pytz
 from discord import app_commands
 from discord.ext import commands, tasks
+from tabulate import tabulate
 from yt_dlp import YoutubeDL
 
+from globals import *
 from spotify_top_songs import get_chart, pl_id
-
-
-def getHoursMinutes():
-    return datetime.now(pytz.timezone("Europe/Rome")).strftime("%H:%M")
 
 
 class music_cog(commands.Cog):
@@ -37,9 +34,11 @@ class music_cog(commands.Cog):
         # 2d array containing [song, channel]
         self.music_queue = []
         self.YDL_OPTIONS = {"quiet": True,
-                            'format': 'bestaudio', 'noplaylist': 'True'}
+                            'format': 'bestaudio',
+                            'noplaylist': 'True'}
         self.FFMPEG_OPTIONS = {
-            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn'}
 
         self.vc = None
 
@@ -102,7 +101,6 @@ class music_cog(commands.Cog):
 
         if self.is_playing:
             return
-            # await self.play_music(ctx)
 
         self.is_playing = True
         m_url = self.music_queue[0][0]['source']
@@ -129,8 +127,7 @@ class music_cog(commands.Cog):
                 if self.loop_queue:
                     self.music_queue.append(item)
                 if len(self.music_queue) == 0:
-                    self.is_playing = False
-                    self.top_playing = False
+                    setToFalse(self, ['is_playing', 'top_playing'])
                     return
             # get the first url
             m_url = self.music_queue[0][0]['source']
@@ -138,8 +135,10 @@ class music_cog(commands.Cog):
             self.vc.play(discord.FFmpegPCMAudio(
                 m_url, **self.FFMPEG_OPTIONS), after=lambda e: self.play_next())
         else:
-            self.is_playing = False
-            self.top_playing = False
+            setToFalse(self, ['is_playing',
+                              'top_playing',
+                              'loop_queue',
+                              'loop'])
 
     @commands.command(name="pause", help="Pauses the current song being played")
     async def pause(self, ctx, *args):
@@ -175,7 +174,7 @@ class music_cog(commands.Cog):
         retval = ""
         max = 10
         for i in range(0, len(self.music_queue)):
-            # display a max of 5 songs in the current queue
+            # display a max of 'max' songs in the current queue
             if (i > max):
                 break
             retval += self.music_queue[i][0]['title'] + "\n"
@@ -197,17 +196,26 @@ class music_cog(commands.Cog):
 
     @commands.command(name="leave", aliases=["disconnect", "l", "d", "dc"], help="Kicks the bot from VC")
     async def dc(self, ctx):
-        self.is_playing = False
-        self.is_paused = False
-        self.looping = False
-        self.top_playing = False
+        setToFalse(self, [
+            'is_playing',
+            'is_paused',
+            'looping',
+            'loop_queue',
+            'top_playing',
+            'is_radio_playing'])
         self.music_queue = []
         self.now_playing = ""
-        self.is_radio_playing = False
         await self.vc.disconnect()
 
     @commands.command(name="top", help="Plays top songs from spotify")
     async def top(self, ctx, *args):
+        async def async_yt_search(query, i):
+            song = await self.search_yt(query)
+            songs[i] = [song, voice_channel]
+
+        def wrap_async_func(query, i):
+            asyncio.run(async_yt_search(query, i))
+
         if not ctx.author.voice:
             await ctx.send("Connect to a voice channel!")
             return
@@ -242,7 +250,7 @@ class music_cog(commands.Cog):
                 return
             maxsongs = int(maxsongs)
         else:
-            maxsongs = 10
+            maxsongs = 15
 
         if len(chart) < maxsongs:
             maxsongs = len(chart)
@@ -251,30 +259,20 @@ class music_cog(commands.Cog):
             random.shuffle(chart)
 
         await ctx.send(str(maxsongs) + (" songs " if maxsongs > 1 else " song ") + "added to the queue!")
-
         songs = [None] * maxsongs
 
-        async def async_yt_search(query, i):
-            song = await self.search_yt(query)
-            songs[i] = [song, voice_channel]
-
-        def wrap_async_func(query, i):
-            asyncio.run(async_yt_search(query, i))
-
-        # _songs = [["Pos.", "Title"]]
+        # _songs = [["Pos.", "Title", "Artist"]]
         _songs = []
 
         print(f"Retrieving {maxsongs} songs of the '{genre}' genre...")
         query = chart[0]["Artist"] + " " + chart[0]["TrackName"] + " lyrics"
         await self.play(ctx, query + " -nv")
-        # print(1, "-", query)
         _songs.append([1, chart[0]["TrackName"], chart[0]["Artist"]])
 
         threads = []
         for i in range(1,  maxsongs):
             query = chart[i]["Artist"] + " " + \
                 chart[i]["TrackName"] + " lyrics"
-            # print(i+1, "-", query)
             _songs.append([i+1, chart[i]["Artist"], chart[i]["TrackName"]])
 
             _t = threading.Thread(target=wrap_async_func, args=(query, i))
@@ -323,8 +321,8 @@ class music_cog(commands.Cog):
             # 'http://shoutcast.rtl.it:3010/'))
             # 'http://192.111.140.6:9683/stream'))
             'http://0n-pop.radionetz.de/0n-pop.mp3'))
-        # 'https://stream.0nlineradio.com/k-pop?ref'))
-        # 'http://stream.radioparadise.com/rock-128'))
+            # 'https://stream.0nlineradio.com/k-pop?ref'))
+            # 'http://stream.radioparadise.com/rock-128'))
 
     @commands.command(name="loopqueue", aliases=["lq", "loopq"], help="Loops the queue")
     async def loopqueue(self, ctx):
