@@ -74,6 +74,7 @@ class music_cog(commands.Cog):
     @commands.command(name="play", aliases=["p", "playing"], help="Plays a selected song from youtube")
     async def play(self, ctx, *args):
         if self.is_radio_playing:
+            self.is_radio_playing = False
             self.vc.stop()
             await self.clear(ctx)
 
@@ -321,8 +322,8 @@ class music_cog(commands.Cog):
             # 'http://shoutcast.rtl.it:3010/'))
             # 'http://192.111.140.6:9683/stream'))
             'http://0n-pop.radionetz.de/0n-pop.mp3'))
-            # 'https://stream.0nlineradio.com/k-pop?ref'))
-            # 'http://stream.radioparadise.com/rock-128'))
+        # 'https://stream.0nlineradio.com/k-pop?ref'))
+        # 'http://stream.radioparadise.com/rock-128'))
 
     @commands.command(name="loopqueue", aliases=["lq", "loopq"], help="Loops the queue")
     async def loopqueue(self, ctx):
